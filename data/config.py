@@ -5,7 +5,7 @@ env: Env = Env()
 env.read_env('data/.env')
 
 BOT_TOKEN = env('BOT_TOKEN')
-ADMINS = env.list('ADMINS')
+ADMINS = list(map(int, env.list('ADMINS')))
 
 PROJECT_NAME = 'store-bot-example'
 
