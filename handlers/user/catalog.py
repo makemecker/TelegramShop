@@ -3,6 +3,7 @@ import logging
 from aiogram.types import Message, CallbackQuery
 from keyboards.inline.categories import categories_markup, category_cb
 from keyboards.inline.products_from_catalog import product_markup, product_cb
+from keyboards.default.markups import menu_categories_markup, categories_message
 from aiogram.utils.callback_data import CallbackData
 from aiogram.types.chat import ChatActions
 from loader import dp, db, bot
@@ -11,6 +12,7 @@ from filters import IsUser
 
 
 @dp.message_handler(IsUser(), text=catalog)
+@dp.message_handler(IsUser(), text=categories_message)
 async def process_catalog(message: Message):
     await message.answer('Выберите раздел, чтобы вывести список товаров:',
                          reply_markup=categories_markup())
@@ -56,3 +58,5 @@ async def show_products(m, products):
             await m.answer_photo(photo=image,
                                  caption=text,
                                  reply_markup=markup)
+        await m.answer(text='Что вы хотите сделать?',
+                       reply_markup=menu_categories_markup())

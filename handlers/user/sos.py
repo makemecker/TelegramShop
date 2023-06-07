@@ -52,3 +52,8 @@ async def process_submit(message: Message, state: FSMContext):
         await message.answer('Превышен лимит на количество задаваемых вопросов.', reply_markup=ReplyKeyboardRemove())
 
     await state.finish()
+
+
+@dp.message_handler(IsUser())
+async def any_unmark_message(message: Message):
+    await message.answer('Для продолжения наберите команду /menu')
