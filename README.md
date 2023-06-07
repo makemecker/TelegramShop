@@ -4,7 +4,7 @@
 
 ## Источник
 
-Этот проект основан на [оригинальном репозитории](https://github.com/NikolaySimakov/Shop-bot) от [автора](https://github.com/NikolaySimakov).
+Этот проект основан на [оригинальном репозитории](https://github.com/NikolaySimakov/Shop-bot) от [Николая Симакова](https://github.com/NikolaySimakov).
 
 ## Лицензия
 
