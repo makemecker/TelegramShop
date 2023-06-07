@@ -6,9 +6,13 @@ __pycache__/
 *.log
 .env
 *.session
-data/config.py
 data/database.db
 
 # vscode
 .vscode/
 .history/
+
+FileScripts
+
+*.png
+*.bmp
