@@ -3,14 +3,19 @@ from aiogram.types import Message
 from loader import dp, db
 from .menu import delivery_status
 from filters import IsUser
+from aiogram import F
 
-@dp.message_handler(IsUser(), text=delivery_status)
+
+@dp.message(IsUser(), F.text == delivery_status.text)
 async def process_delivery_status(message: Message):
     
     orders = db.fetchall('SELECT * FROM orders WHERE cid=?', (message.chat.id,))
     
-    if len(orders) == 0: await message.answer('У вас нет активных заказов.')
-    else: await delivery_status_answer(message, orders)
+    if len(orders) == 0:
+        await message.answer('У вас нет активных заказов.')
+    else:
+        await delivery_status_answer(message, orders)
+
 
 async def delivery_status_answer(message, orders):
 

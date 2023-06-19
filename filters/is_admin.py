@@ -1,9 +1,11 @@
-
 from aiogram.types import Message
-from aiogram.dispatcher.filters import BoundFilter
+from aiogram.filters import BaseFilter
 from data.config import ADMINS
 
-class IsAdmin(BoundFilter):
 
-    async def check(self, message: Message):
-        return message.from_user.id in ADMINS
+class IsAdmin(BaseFilter):
+    def __init__(self) -> None:
+        self.admin_ids = ADMINS
+
+    async def __call__(self, message: Message) -> bool:
+        return message.from_user.id in self.admin_ids

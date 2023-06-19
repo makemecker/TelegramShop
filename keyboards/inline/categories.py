@@ -1,16 +1,18 @@
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.utils.callback_data import CallbackData
+from aiogram.types import InlineKeyboardButton
+from aiogram.filters.callback_data import CallbackData
 from loader import db
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-category_cb = CallbackData('category', 'id', 'action')
+
+class CategoryCb(CallbackData, prefix="category"):
+    id: str
+    action: str
 
 
 def categories_markup():
+    kb_builder: InlineKeyboardBuilder = InlineKeyboardBuilder()
 
-    global category_cb
-    
-    markup = InlineKeyboardMarkup()
     for idx, title in db.fetchall('SELECT * FROM categories'):
-        markup.add(InlineKeyboardButton(title, callback_data=category_cb.new(id=idx, action='view')))
+        kb_builder.row(InlineKeyboardButton(text=title, callback_data=CategoryCb(id=idx, action='view').pack()))
 
-    return markup
+    return kb_builder.as_markup()

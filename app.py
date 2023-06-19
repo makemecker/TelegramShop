@@ -1,12 +1,10 @@
 import os
 import handlers
-from aiogram import executor
 from data import config
 from loader import dp, db, bot
-import filters
 import logging
+import asyncio
 
-filters.setup(dp)
 
 WEBAPP_HOST = "0.0.0.0"
 WEBAPP_PORT = int(os.environ.get("PORT", 5000))
@@ -14,7 +12,7 @@ user_message = 'Пользователь'
 admin_message = 'Админ'
 
 
-async def on_startup(dp):
+async def on_startup():
     logging.basicConfig(level=logging.INFO)
     db.create_tables()
 
@@ -30,20 +28,10 @@ async def on_shutdown():
     logging.warning("Bot down")
 
 
+async def main() -> None:
+    await dp.start_polling(bot, on_startup=on_startup, skip_updates=False)
+
 if __name__ == '__main__':
+    # Запуск бота
+    asyncio.run(main())
 
-    if "HEROKU" in list(os.environ.keys()):
-
-        executor.start_webhook(
-            dispatcher=dp,
-            webhook_path=config.WEBHOOK_PATH,
-            on_startup=on_startup,
-            on_shutdown=on_shutdown,
-            skip_updates=True,
-            host=WEBAPP_HOST,
-            port=WEBAPP_PORT,
-        )
-
-    else:
-
-        executor.start_polling(dp, on_startup=on_startup, skip_updates=False)

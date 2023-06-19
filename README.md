@@ -1,10 +1,11 @@
 # TelegramShop
 Телеграм бот для продажи товаров  
-Пример: https://t.me/MagicMartBot  
+Пример: https://t.me/SoyuzOptBot  
 
 ## Источник
 
-Этот проект основан на [оригинальном репозитории](https://github.com/NikolaySimakov/Shop-bot) от [Николая Симакова](https://github.com/NikolaySimakov).
+Этот проект основан на [оригинальном репозитории](https://github.com/NikolaySimakov/Shop-bot) от 
+[Николая Симакова](https://github.com/NikolaySimakov), но перенесен на aiogram 3
 
 ## Лицензия
 
