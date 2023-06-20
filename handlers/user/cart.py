@@ -11,21 +11,25 @@ from .menu import cart
 from data.config import THRESHOLD, ADMINS
 from aiogram.filters import StateFilter
 from aiogram import F
+from keyboards.inline.kb_generator import create_inline_kb
 
 
-@dp.message(IsUser(), F.text == cart.text)
+@dp.callback_query(F.data == 'cart')
 @dp.message(IsUser(), F.text == cart_message.text)
-async def process_cart(message: Message, state: FSMContext):
+async def process_cart(update: Message | CallbackQuery, state: FSMContext):
+    if isinstance(update, CallbackQuery):
+        await update.answer()
+        update = update.message
     cart_data = db.fetchall(
-        'SELECT * FROM cart WHERE cid=?', (message.chat.id,))
+        'SELECT * FROM cart WHERE cid=?', (update.chat.id,))
 
     if len(cart_data) == 0:
 
-        await message.answer('Ваша корзина пуста.')
+        await update.answer('Ваша корзина пуста.')
 
     else:
 
-        await bot.send_chat_action(message.chat.id, ChatAction.TYPING)
+        await bot.send_chat_action(update.chat.id, ChatAction.TYPING)
         data = await state.get_data()
         data['products'] = {}
 
@@ -48,15 +52,13 @@ async def process_cart(message: Message, state: FSMContext):
                 markup = product_markup(idx, count_in_cart)
                 text = f'<b>{title}</b>\n\n{body}\n\nЦена: {price}₽.'
 
-                await message.answer_photo(photo=BufferedInputFile(image, filename=text),
-                                           caption=text,
-                                           reply_markup=markup)
+                await update.answer_photo(photo=BufferedInputFile(image, filename=text),
+                                          caption=text,
+                                          reply_markup=markup)
         await state.set_data(data=data)
         if order_cost != 0:
-            markup = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text='📦 Оформить заказ')]], resize_keyboard=True,
-                                         selective=True)
-            await message.answer('Перейти к оформлению?',
-                                 reply_markup=markup)
+            markup = create_inline_kb('order', 'menu')
+            await update.answer('Перейти к оформлению?', reply_markup=markup)
 
 
 @dp.callback_query(IsUser(), ProductCb.filter(F.action == 'count'))
@@ -118,10 +120,11 @@ async def product_callback_handler(query: CallbackQuery, callback_data: ProductC
                 await query.message.edit_reply_markup(reply_markup=product_markup(idx, count_in_cart))
 
 
-@dp.message(IsUser(), F.text == '📦 Оформить заказ')
-async def process_checkout(message: Message, state: FSMContext):
+@dp.callback_query(F.data == 'order')
+async def process_checkout(callback: CallbackQuery, state: FSMContext):
     await state.set_state(CheckoutState.check_cart)
-    await checkout(message=message, state=state)
+    await checkout(message=callback.message, state=state)
+    await callback.answer()
 
 
 async def checkout(state, message=None, info_to_admin=False):
@@ -144,8 +147,9 @@ async def checkout(state, message=None, info_to_admin=False):
             await bot.send_message(admin_id,
                                    f'{answer}\nОбщая сумма заказа: {total_price}₽. {delivery}')
     else:
+        markup = create_inline_kb('all_right', 'back')
         await message.answer(f'{answer}\nОбщая сумма заказа: {total_price}₽. {delivery}',
-                             reply_markup=check_markup())
+                             reply_markup=markup)
 
 
 @dp.message(IsUser(), lambda message: message.text not in [all_right_message.text, back_message.text],
@@ -154,23 +158,27 @@ async def process_check_cart_invalid(message: Message):
     await message.reply('Такого варианта не было.')
 
 
-@dp.message(IsUser(), F.text == back_message.text, StateFilter(CheckoutState.check_cart))
-async def process_check_cart_back(message: Message, state: FSMContext):
+@dp.callback_query(F.data == 'back', StateFilter(CheckoutState.check_cart))
+async def process_check_cart_back(callback: CallbackQuery, state: FSMContext):
     await state.clear()
-    await process_cart(message, state)
+    await process_cart(callback.message, state)
+    await callback.answer()
 
 
-@dp.message(IsUser(), F.text == all_right_message.text, StateFilter(CheckoutState.check_cart))
-async def process_check_cart_all_right(message: Message, state: FSMContext):
+@dp.callback_query(F.data == 'all_right', StateFilter(CheckoutState.check_cart))
+async def process_check_cart_all_right(callback: CallbackQuery, state: FSMContext):
     await state.set_state(CheckoutState.name)
-    await message.answer('Укажите, пожалуйста, Ваше имя',
-                         reply_markup=back_markup())
+    markup = create_inline_kb('back')
+    await callback.message.answer('Укажите, пожалуйста, Ваше имя',
+                                  reply_markup=markup)
+    await callback.answer()
 
 
-@dp.message(IsUser(), F.text == back_message.text, StateFilter(CheckoutState.name))
-async def process_name_back(message: Message, state: FSMContext):
+@dp.callback_query(F.data == 'back', StateFilter(CheckoutState.name))
+async def process_name_back(callback: CallbackQuery, state: FSMContext):
     await state.set_state(CheckoutState.check_cart)
-    await checkout(message=message, state=state)
+    await checkout(message=callback.message, state=state)
+    await callback.answer()
 
 
 @dp.message(IsUser(), StateFilter(CheckoutState.name))
@@ -185,15 +193,18 @@ async def process_name(message: Message, state: FSMContext):
 
     else:
         await state.set_state(CheckoutState.address)
+        markup = create_inline_kb('back')
         await message.answer('Укажите, пожалуйста, адрес доставки',
-                             reply_markup=back_markup())
+                             reply_markup=markup)
 
 
-@dp.message(IsUser(), F.text == back_message.text, StateFilter(CheckoutState.address))
-async def process_address_back(message: Message, state: FSMContext):
-    await message.answer('Изменить имя с <b>' + (await state.get_data())['name'] + '</b>?',
-                         reply_markup=back_markup())
+@dp.callback_query(F.data == 'back', StateFilter(CheckoutState.address))
+async def process_address_back(callback: CallbackQuery, state: FSMContext):
+    markup = create_inline_kb('back')
+    await callback.message.answer('Изменить имя с <b>' + (await state.get_data())['name'] + '</b>?',
+                                  reply_markup=markup)
     await state.set_state(CheckoutState.name)
+    await callback.answer()
 
 
 @dp.message(IsUser(), StateFilter(CheckoutState.address))
@@ -202,15 +213,18 @@ async def process_address(message: Message, state: FSMContext):
     data['address'] = message.text
     await state.set_data(data)
     await state.set_state(CheckoutState.phone)
+    markup = create_inline_kb('back')
     await message.answer('Укажите, пожалуйста, телефон для связи',
-                         reply_markup=back_markup())
+                         reply_markup=markup)
 
 
-@dp.message(IsUser(), F.text == back_message.text, StateFilter(CheckoutState.phone))
-async def process_address_back(message: Message, state: FSMContext):
-    await message.answer('Изменить адрес: <b>' + (await state.get_data())['address'] + '</b>?',
-                         reply_markup=back_markup())
+@dp.callback_query(F.data == 'back', StateFilter(CheckoutState.phone))
+async def process_address_back(callback: CallbackQuery, state: FSMContext):
+    markup = create_inline_kb('back')
+    await callback.message.answer('Изменить адрес: <b>' + (await state.get_data())['address'] + '</b>?',
+                                  reply_markup=markup)
     await state.set_state(CheckoutState.address)
+    await callback.answer()
 
 
 @dp.message(IsUser(), StateFilter(CheckoutState.phone))
@@ -224,8 +238,9 @@ async def process_address(message: Message, state: FSMContext):
 
 
 async def confirm(message):
+    markup = create_inline_kb('confirm', 'back')
     await message.answer('Убедитесь, что все правильно оформлено и подтвердите заказ.',
-                         reply_markup=confirm_markup())
+                         reply_markup=markup)
 
 
 @dp.message(IsUser(), lambda message: message.text not in [confirm_message.text, back_message.text],
@@ -234,18 +249,20 @@ async def process_confirm_invalid(message: Message):
     await message.reply('Такого варианта не было.')
 
 
-@dp.message(IsUser(), F.text == back_message.text, StateFilter(CheckoutState.confirm))
-async def process_confirm(message: Message, state: FSMContext):
+@dp.callback_query(F.data == 'back', StateFilter(CheckoutState.confirm))
+async def process_confirm(callback: CallbackQuery, state: FSMContext):
     await state.set_state(CheckoutState.phone)
-    await message.answer('Изменить телефон: <b>' + (await state.get_data())['phone'] + '</b>?',
-                         reply_markup=back_markup())
+    markup = create_inline_kb('back')
+    await callback.message.answer('Изменить телефон: <b>' + (await state.get_data())['phone'] + '</b>?',
+                                  reply_markup=markup)
+    await callback.answer()
 
 
-@dp.message(IsUser(), F.text == confirm_message.text, StateFilter(CheckoutState.confirm))
-async def process_confirm(message: Message, state: FSMContext):
+@dp.callback_query(F.data == 'confirm', StateFilter(CheckoutState.confirm))
+async def process_confirm(callback: CallbackQuery, state: FSMContext):
     enough_money = True  # enough money on the balance sheet
     markup = ReplyKeyboardRemove()
-
+    message = callback.message
     if enough_money:
 
         logging.info('Deal was made.')
@@ -259,12 +276,11 @@ async def process_confirm(message: Message, state: FSMContext):
                  (cid, data['name'], data['address'], ' '.join(products)))
 
         db.query('DELETE FROM cart WHERE cid=?', (cid,))
-
+        markup = create_inline_kb('menu')
         await message.answer('Отлично! Наш Менеджер свяжется с Вами в ближайшее время 🚀\n'
                              'Имя: <b>' + data['name'] + '</b>' +
                              '\nАдрес: <b>' + data['address'] + '</b>' +
                              '\nТелефон: <b>' + data['phone'] + '</b>',
-
                              reply_markup=markup)
         for admin_id in ADMINS:
             await bot.send_message(admin_id,
@@ -282,3 +298,4 @@ async def process_confirm(message: Message, state: FSMContext):
                              reply_markup=markup)
 
     await state.clear()
+    await callback.answer()

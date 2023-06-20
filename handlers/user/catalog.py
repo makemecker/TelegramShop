@@ -7,18 +7,21 @@ from loader import dp, db, bot
 from .menu import catalog
 from filters import IsUser
 from aiogram import F
+from keyboards.inline.kb_generator import create_inline_kb
 
 
-@dp.message(IsUser(), F.text == catalog.text)
+@dp.callback_query(F.data == 'catalog')
 @dp.message(IsUser(), F.text == categories_message.text)
-async def process_catalog(message: Message):
-    await message.answer('Выберите раздел, чтобы вывести список товаров:',
-                         reply_markup=categories_markup())
+async def process_catalog(update: Message | CallbackQuery):
+    if isinstance(update, CallbackQuery):
+        await update.answer()
+        update = update.message
+    await update.answer('Выберите раздел, чтобы вывести список товаров:',
+                        reply_markup=categories_markup())
 
 
 @dp.callback_query(IsUser(), CategoryCb.filter(F.action == 'view'))
 async def category_callback_handler(query: CallbackQuery, callback_data: CategoryCb):
-
     products = db.fetchall('''SELECT * FROM products product
     WHERE product.tag = (SELECT title FROM categories WHERE idx=?) 
     AND product.idx NOT IN (SELECT idx FROM cart WHERE cid = ?)''',
@@ -30,7 +33,6 @@ async def category_callback_handler(query: CallbackQuery, callback_data: Categor
 
 @dp.callback_query(IsUser(), ProductCb.filter(F.action == 'add'))
 async def add_product_callback_handler(query: CallbackQuery, callback_data: ProductCb):
-
     db.query('INSERT INTO cart VALUES (?, ?, 1)',
              (query.message.chat.id, callback_data.id))
 
@@ -39,7 +41,6 @@ async def add_product_callback_handler(query: CallbackQuery, callback_data: Prod
 
 
 async def show_products(m, products):
-
     if len(products) == 0:
 
         await m.answer('Здесь ничего нет 😢')
@@ -49,12 +50,12 @@ async def show_products(m, products):
         await bot.send_chat_action(m.chat.id, ChatAction.TYPING)
 
         for idx, title, body, image, price, _ in products:
-
             markup = product_markup(idx, price)
             text = f'<b>{title}</b>\n\n{body}'
 
             await m.answer_photo(photo=BufferedInputFile(image, filename=text),
                                  caption=text,
                                  reply_markup=markup)
+        transition_markup = create_inline_kb('menu', 'catalog', 'cart')
         await m.answer(text='Что вы хотите сделать?',
-                       reply_markup=menu_categories_markup())
+                       reply_markup=transition_markup)

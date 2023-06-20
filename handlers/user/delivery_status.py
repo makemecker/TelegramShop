@@ -4,17 +4,19 @@ from loader import dp, db
 from .menu import delivery_status
 from filters import IsUser
 from aiogram import F
+from aiogram.types import CallbackQuery
 
 
-@dp.message(IsUser(), F.text == delivery_status.text)
-async def process_delivery_status(message: Message):
-    
+@dp.callback_query(F.data == 'status')
+async def process_delivery_status(callback: CallbackQuery):
+    message = callback.message
     orders = db.fetchall('SELECT * FROM orders WHERE cid=?', (message.chat.id,))
     
     if len(orders) == 0:
         await message.answer('У вас нет активных заказов.')
     else:
         await delivery_status_answer(message, orders)
+    await callback.answer()
 
 
 async def delivery_status_answer(message, orders):
