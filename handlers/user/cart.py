@@ -187,14 +187,14 @@ async def process_name(message: Message, state: FSMContext):
     data['name'] = message.text
     await state.set_data(data)
     if 'address' in data.keys():
-
         await confirm(message)
         await state.set_state(CheckoutState.confirm)
-
     else:
         await state.set_state(CheckoutState.address)
-        markup = create_inline_kb('back')
-        await message.answer('Укажите, пожалуйста, адрес доставки',
+        markup = create_inline_kb('pickup', 'back')
+        await message.answer('Укажите, пожалуйста, адрес доставки или выберите Самовывоз. \n'
+                             'Самовывоз осуществляется по адресу: Московская область, г. Котельники, ул. Строителей, '
+                             'д. 5',
                              reply_markup=markup)
 
 
@@ -207,15 +207,21 @@ async def process_address_back(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
 
+@dp.callback_query(F.data == 'pickup', StateFilter(CheckoutState.address))
 @dp.message(IsUser(), StateFilter(CheckoutState.address))
-async def process_address(message: Message, state: FSMContext):
+async def process_address(update: Message | CallbackQuery, state: FSMContext):
     data = await state.get_data()
-    data['address'] = message.text
+    if isinstance(update, CallbackQuery):
+        data['address'] = 'Самовывоз (Московская область, г. Котельники, ул. Строителей, д. 5)'
+        await update.answer()
+        update = update.message
+    else:
+        data['address'] = update.text
     await state.set_data(data)
     await state.set_state(CheckoutState.phone)
     markup = create_inline_kb('back')
-    await message.answer('Укажите, пожалуйста, телефон для связи',
-                         reply_markup=markup)
+    await update.answer('Укажите, пожалуйста, телефон для связи',
+                        reply_markup=markup)
 
 
 @dp.callback_query(F.data == 'back', StateFilter(CheckoutState.phone))
