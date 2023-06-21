@@ -4,6 +4,7 @@ from aiogram.types import CallbackQuery
 from aiogram import F
 from keyboards.kb_generator import create_inline_kb
 from aiogram import Router
+from lexicon import LEXICON
 
 # Инициализируем роутер уровня модуля
 menu_router: Router = Router()
@@ -16,4 +17,4 @@ async def user_menu(update: Message | CallbackQuery):
         await update.answer()
         update = update.message
     markup = create_inline_kb('catalog', 'cart')
-    await update.answer('Меню', reply_markup=markup)
+    await update.answer(LEXICON['/menu'], reply_markup=markup)

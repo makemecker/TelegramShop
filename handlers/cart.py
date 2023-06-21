@@ -10,6 +10,7 @@ from keyboards.kb_generator import create_inline_kb
 from aiogram import Router, Bot
 from database.storage import DatabaseManager
 from handlers.handler_functions import checkout, confirm
+from lexicon import LEXICON
 
 # Инициализируем роутер уровня модуля
 cart_router: Router = Router()
@@ -20,7 +21,7 @@ async def process_cart(callback: CallbackQuery, state: FSMContext, database: Dat
     message = callback.message
     cart_data = database.fetchall('SELECT * FROM cart WHERE cid=?', (message.chat.id,))
     if len(cart_data) == 0:
-        await message.answer('Ваша корзина пуста.')
+        await message.answer(LEXICON['empty_cart'])
     else:
         await bot.send_chat_action(message.chat.id, ChatAction.TYPING)
         data = await state.get_data()
@@ -49,7 +50,7 @@ async def process_cart(callback: CallbackQuery, state: FSMContext, database: Dat
         await state.set_data(data=data)
         if order_cost != 0:
             markup = create_inline_kb('order', 'menu')
-            await message.answer('Перейти к оформлению?', reply_markup=markup)
+            await message.answer(LEXICON['to_registration'], reply_markup=markup)
         await callback.answer()
 
 
@@ -73,7 +74,7 @@ async def product_callback_handler(callback: CallbackQuery, callback_data: Produ
 
         else:
 
-            await callback.message.answer('Количество - ' + data['products'][idx][2])
+            await callback.message.answer(LEXICON['count'].format(data['products'][idx][2]))
 
     else:
         if 'products' not in data.keys():
@@ -132,8 +133,7 @@ async def process_check_cart_back(callback: CallbackQuery, state: FSMContext):
 async def process_check_cart_all_right(callback: CallbackQuery, state: FSMContext):
     await state.set_state(CheckoutState.name)
     markup = create_inline_kb('back')
-    await callback.message.answer('Укажите, пожалуйста, Ваше имя',
-                                  reply_markup=markup)
+    await callback.message.answer(LEXICON['set_name'], reply_markup=markup)
     await callback.answer()
 
 
@@ -156,16 +156,14 @@ async def process_name(message: Message, state: FSMContext):
     else:
         await state.set_state(CheckoutState.address)
         markup = create_inline_kb('pickup', 'back')
-        await message.answer('Укажите, пожалуйста, адрес доставки или выберите Самовывоз. \n'
-                             'Самовывоз осуществляется по адресу: Московская область, г. Котельники, ул. Строителей, '
-                             'д. 5',
+        await message.answer(LEXICON['set_address'],
                              reply_markup=markup)
 
 
 @cart_router.callback_query(F.data == 'back', StateFilter(CheckoutState.address))
 async def process_address_back(callback: CallbackQuery, state: FSMContext):
     markup = create_inline_kb('back')
-    await callback.message.answer('Изменить имя с <b>' + (await state.get_data())['name'] + '</b>?',
+    await callback.message.answer(LEXICON['change_name'].format((await state.get_data())['name']),
                                   reply_markup=markup)
     await state.set_state(CheckoutState.name)
     await callback.answer()
@@ -176,7 +174,7 @@ async def process_address_back(callback: CallbackQuery, state: FSMContext):
 async def process_address(update: Message | CallbackQuery, state: FSMContext):
     data = await state.get_data()
     if isinstance(update, CallbackQuery):
-        data['address'] = 'Самовывоз (Московская область, г. Котельники, ул. Строителей, д. 5)'
+        data['address'] = LEXICON['address_if_pickup']
         await update.answer()
         update = update.message
     else:
@@ -184,14 +182,14 @@ async def process_address(update: Message | CallbackQuery, state: FSMContext):
     await state.set_data(data)
     await state.set_state(CheckoutState.phone)
     markup = create_inline_kb('back')
-    await update.answer('Укажите, пожалуйста, телефон для связи',
+    await update.answer(LEXICON['set_phone'],
                         reply_markup=markup)
 
 
 @cart_router.callback_query(F.data == 'back', StateFilter(CheckoutState.phone))
 async def process_address_back(callback: CallbackQuery, state: FSMContext):
     markup = create_inline_kb('back')
-    await callback.message.answer('Изменить адрес: <b>' + (await state.get_data())['address'] + '</b>?',
+    await callback.message.answer(LEXICON['change_address'].format((await state.get_data())['address']),
                                   reply_markup=markup)
     await state.set_state(CheckoutState.address)
     await callback.answer()
@@ -211,11 +209,12 @@ async def process_address(message: Message, state: FSMContext):
 async def process_confirm(callback: CallbackQuery, state: FSMContext):
     await state.set_state(CheckoutState.phone)
     markup = create_inline_kb('back')
-    await callback.message.answer('Изменить телефон: <b>' + (await state.get_data())['phone'] + '</b>?',
+    await callback.message.answer(LEXICON['change_phone'].format((await state.get_data())['phone']),
                                   reply_markup=markup)
     await callback.answer()
 
 
+# todo: объединить дублирующиеся сообщения админу и пользователю
 @cart_router.callback_query(F.data == 'confirm', StateFilter(CheckoutState.confirm))
 async def process_confirm(callback: CallbackQuery, state: FSMContext, admins: list, threshold: int,
                           database: DatabaseManager, bot: Bot):
@@ -236,24 +235,18 @@ async def process_confirm(callback: CallbackQuery, state: FSMContext, admins: li
 
         database.query('DELETE FROM cart WHERE cid=?', (cid,))
         markup = create_inline_kb('menu')
-        await message.answer('Отлично! Наш Менеджер свяжется с Вами в ближайшее время 🚀\n'
-                             'Имя: <b>' + data['name'] + '</b>' +
-                             '\nАдрес: <b>' + data['address'] + '</b>' +
-                             '\nТелефон: <b>' + data['phone'] + '</b>',
+        await message.answer(LEXICON['done_to_user'].format(data['name'], data['address'], data['phone']),
                              reply_markup=markup)
         for admin_id in admins:
-            await bot.send_message(admin_id,
-                                   "Оформлен новый заказ!\n"
-                                   f"Пользователь: @{message.from_user.username}\n"
-                                   f"User_id: {message.from_user.id}\n"
-                                   'Имя: <b>' + data['name'] + '</b>' +
-                                   '\nАдрес: <b>' + data['address'] + '</b>' +
-                                   '\nТелефон: <b>' + data['phone'] + '</b>\n'
-                                   )
+            await bot.send_message(admin_id, LEXICON['done_to_admin'].format(message.from_user.username,
+                                                                                message.from_user.id,
+                                                                                data['name'],
+                                                                                data['address'],
+                                                                                data['phone']))
         await checkout(state=state, info_to_admin=True, admins=admins, threshold=threshold, bot=bot)
     else:
 
-        await message.answer('У вас недостаточно денег на счете. Пополните баланс!',
+        await message.answer(LEXICON['no_money'],
                              reply_markup=markup)
 
     await state.clear()

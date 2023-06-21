@@ -4,6 +4,7 @@ from aiogram import Bot
 from aiogram.types import Message, BufferedInputFile
 from aiogram.enums.chat_action import ChatAction
 from keyboards.products_from_catalog import product_markup
+from lexicon import LEXICON
 
 
 async def checkout(state: FSMContext, threshold: int, admins: list, bot: Bot, message=None, info_to_admin=False):
@@ -18,29 +19,27 @@ async def checkout(state: FSMContext, threshold: int, admins: list, bot: Bot, me
 
     delivery = ''
     if total_price < threshold:
-        delivery = f'\n\n Сумма заказа составляет менее {threshold}₽, поэтому доставка заказа платная. ' + \
-                   ('Надо определить стоимость доставки до клиента' if info_to_admin
-                    else 'Стоимость доставки Менеджер сообщит дополнительно.')
+        delivery = LEXICON['threshold_to_admin'].format(threshold) if info_to_admin \
+            else LEXICON['threshold_to_user'].format(threshold)
     if info_to_admin:
         for admin_id in admins:
-            await bot.send_message(admin_id,
-                                   f'{answer}\nОбщая сумма заказа: {total_price}₽. {delivery}')
+            await bot.send_message(admin_id, LEXICON['order_info'].format(answer, total_price, delivery))
     else:
         markup = create_inline_kb('all_right', 'back')
-        await message.answer(f'{answer}\nОбщая сумма заказа: {total_price}₽. {delivery}',
+        await message.answer(LEXICON['order_info'].format(answer, total_price, delivery),
                              reply_markup=markup)
 
 
 async def confirm(message: Message):
     markup = create_inline_kb('confirm', 'back')
-    await message.answer('Убедитесь, что все правильно оформлено и подтвердите заказ.',
+    await message.answer(LEXICON['check'],
                          reply_markup=markup)
 
 
 async def show_products(message: Message, products: list, bot: Bot):
     if len(products) == 0:
 
-        await message.answer('Здесь ничего нет 😢')
+        await message.answer(LEXICON['nothing'])
 
     else:
 
@@ -54,5 +53,5 @@ async def show_products(message: Message, products: list, bot: Bot):
                                        caption=text,
                                        reply_markup=markup)
         transition_markup = create_inline_kb('menu', 'catalog', 'cart')
-        await message.answer(text='Что вы хотите сделать?',
+        await message.answer(text=LEXICON['submenu'],
                              reply_markup=transition_markup)

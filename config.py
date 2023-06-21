@@ -14,6 +14,7 @@ class Config:
     tg_bot: TgBot
     database: DatabaseManager
     delivery_threshold: int
+    pickup_address: str
 
 
 def load_config(path: str | None = '.env') -> Config:
@@ -23,4 +24,5 @@ def load_config(path: str | None = '.env') -> Config:
     return Config(tg_bot=TgBot(token=env('BOT_TOKEN'),
                                admins=list(map(int, env.list('ADMINS')))),
                   database=DatabaseManager('database/database.db'),
-                  delivery_threshold=int(env('DELIVERY_THRESHOLD')))
+                  delivery_threshold=int(env('DELIVERY_THRESHOLD')),
+                  pickup_address=env('PICKUP_ADDRESS'))
