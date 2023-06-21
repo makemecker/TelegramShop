@@ -5,7 +5,7 @@
 ## Источник
 
 Этот проект основан на [оригинальном репозитории](https://github.com/NikolaySimakov/Shop-bot) от 
-[Николая Симакова](https://github.com/NikolaySimakov), но перенесен на aiogram 3
+[Николая Симакова](https://github.com/NikolaySimakov), но перенесен на aiogram 3 и внесены изменения
 
 ## Лицензия
 
