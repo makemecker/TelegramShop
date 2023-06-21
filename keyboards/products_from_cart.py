@@ -1,5 +1,5 @@
 from aiogram.types import InlineKeyboardButton
-from keyboards.inline.products_from_catalog import ProductCb
+from keyboards.products_from_catalog import ProductCb
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 

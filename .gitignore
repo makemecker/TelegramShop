@@ -6,7 +6,7 @@ __pycache__/
 *.log
 .env
 *.session
-data/database.db
+database/database.db
 
 # vscode
 .vscode/

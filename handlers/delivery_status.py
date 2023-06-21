@@ -1,16 +1,16 @@
-
-from aiogram.types import Message
-from loader import dp, db
-from .menu import delivery_status
-from filters import IsUser
 from aiogram import F
 from aiogram.types import CallbackQuery
+from aiogram import Router
+from database.storage import DatabaseManager
+
+# Инициализируем роутер уровня модуля
+delivery_router: Router = Router()
 
 
-@dp.callback_query(F.data == 'status')
-async def process_delivery_status(callback: CallbackQuery):
+@delivery_router.callback_query(F.data == 'status')
+async def process_delivery_status(callback: CallbackQuery, database: DatabaseManager):
     message = callback.message
-    orders = db.fetchall('SELECT * FROM orders WHERE cid=?', (message.chat.id,))
+    orders = database.fetchall('SELECT * FROM orders WHERE cid=?', (message.chat.id,))
     
     if len(orders) == 0:
         await message.answer('У вас нет активных заказов.')
