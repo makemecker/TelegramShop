@@ -44,10 +44,12 @@ async def process_cart(callback: CallbackQuery, state: FSMContext, database: Dat
 
                 markup = product_markup(idx, count_in_cart)
                 text = f'<b>{title}</b>\n\n{body}\n\nЦена: {price}₽.'
-
-                await message.answer_photo(photo=BufferedInputFile(image, filename=text),
-                                           caption=text,
-                                           reply_markup=markup)
+                if image is not None:
+                    await message.answer_photo(photo=BufferedInputFile(image, filename=text),
+                                               caption=text,
+                                               reply_markup=markup)
+                else:
+                    await message.answer(text=title, reply_markup=markup)
         await state.set_data(data=data)
         if order_cost != 0:
             markup = create_inline_kb('order', 'menu')
@@ -230,8 +232,8 @@ async def process_confirm(callback: CallbackQuery, state: FSMContext, admins: li
         database.query('DELETE FROM cart WHERE cid=?', (cid,))
         markup = create_inline_kb('menu')
         await message.answer(LEXICON['done_to_user'] + LEXICON['user_info'].format(data['name'],
-                                                                                            data['address'],
-                                                                                            data['phone']),
+                                                                                   data['address'],
+                                                                                   data['phone']),
                              reply_markup=markup)
         for admin_id in admins:
             await bot.send_message(admin_id, LEXICON['done_to_admin'].format(message.from_user.username,

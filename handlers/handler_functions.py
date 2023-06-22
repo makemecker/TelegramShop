@@ -49,21 +49,21 @@ async def show_products(message: Message, products: list, bot: Bot):
         for idx, title, body, image, price, _ in products:
             markup = product_markup(idx, price)
             text = f'<b>{title}</b>\n\n{body}'
-
-            await message.answer_photo(photo=BufferedInputFile(image, filename=text),
-                                       caption=text,
-                                       reply_markup=markup)
-        transition_markup = create_inline_kb('menu', 'catalog', 'cart')
+            if image is not None:
+                await message.answer_photo(photo=BufferedInputFile(image, filename=text),
+                                           caption=text,
+                                           reply_markup=markup)
+            else:
+                await message.answer(text=title, reply_markup=markup)
+        transition_markup = create_inline_kb('catalog', 'cart')
         await message.answer(text=LEXICON['submenu'],
                              reply_markup=transition_markup)
 
 
 async def delivery_status_answer(message: Message, orders: list):
-
     res = ''
 
     for order in orders:
-
         res += f'Заказ <b>№{order[3]}</b>'
         answer = [
             LEXICON['status_warehouse'],
