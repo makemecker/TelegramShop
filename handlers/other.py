@@ -7,8 +7,6 @@ from lexicon import LEXICON
 other_router: Router = Router()
 
 
-# todo: Изменить никнейм buketoff на Manager
-# todo: Изменить команду /sos на /help через BotFather
 @other_router.message(Command(commands=['help']))
 async def help_command(message: Message):
     await message.answer(LEXICON['/help'])

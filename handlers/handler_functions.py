@@ -13,9 +13,10 @@ async def checkout(state: FSMContext, threshold: int, admins: list, bot: Bot, me
 
     data = await state.get_data()
     for title, price, count_in_cart in data['products'].values():
-        tp = count_in_cart * price
-        answer += f'<b>{title}</b> * {count_in_cart}шт. = {tp}₽\n'
-        total_price += tp
+        if count_in_cart > 0:
+            tp = count_in_cart * price
+            answer += f'<b>{title}</b> * {count_in_cart}шт. = {tp}₽\n'
+            total_price += tp
 
     delivery = ''
     if total_price < threshold:
@@ -55,3 +56,22 @@ async def show_products(message: Message, products: list, bot: Bot):
         transition_markup = create_inline_kb('menu', 'catalog', 'cart')
         await message.answer(text=LEXICON['submenu'],
                              reply_markup=transition_markup)
+
+
+async def delivery_status_answer(message: Message, orders: list):
+
+    res = ''
+
+    for order in orders:
+
+        res += f'Заказ <b>№{order[3]}</b>'
+        answer = [
+            LEXICON['status_warehouse'],
+            LEXICON['status_on_way'],
+            LEXICON['status_delivered']
+        ]
+
+        res += answer[0]
+        res += '\n\n'
+
+    await message.answer(res)

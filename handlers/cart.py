@@ -22,6 +22,7 @@ async def process_cart(callback: CallbackQuery, state: FSMContext, database: Dat
     cart_data = database.fetchall('SELECT * FROM cart WHERE cid=?', (message.chat.id,))
     if len(cart_data) == 0:
         await message.answer(LEXICON['empty_cart'])
+        await callback.answer()
     else:
         await bot.send_chat_action(message.chat.id, ChatAction.TYPING)
         data = await state.get_data()
@@ -54,14 +55,8 @@ async def process_cart(callback: CallbackQuery, state: FSMContext, database: Dat
         await callback.answer()
 
 
-# todo: объединить фильтры
-@cart_router.callback_query(ProductCb.filter(F.action == 'increase'))
-@cart_router.callback_query(ProductCb.filter(F.action == 'decrease'))
-@cart_router.callback_query(ProductCb.filter(F.action == 'increase10'))
-@cart_router.callback_query(ProductCb.filter(F.action == 'decrease10'))
-@cart_router.callback_query(ProductCb.filter(F.action == 'count50'))
-@cart_router.callback_query(ProductCb.filter(F.action == 'count100'))
-@cart_router.callback_query(ProductCb.filter(F.action == 'reset'))
+@cart_router.callback_query(ProductCb.filter(F.action.in_({'increase', 'decrease', 'increase10', 'decrease10',
+                                                           'count50', 'count100', 'reset'})))
 async def product_callback_handler(callback: CallbackQuery, callback_data: ProductCb, state: FSMContext,
                                    database: DatabaseManager):
     idx = callback_data.id
@@ -95,13 +90,13 @@ async def product_callback_handler(callback: CallbackQuery, callback_data: Produ
             }
             if change_reactions.get(action):
                 data['products'][idx][2] += change_reactions[action]
+                if data['products'][idx][2] < 0:
+                    data['products'][idx][2] = 0
             else:
                 data['products'][idx][2] = assign_reactions[action]
             count_in_cart = data['products'][idx][2]
             await state.set_data(data)
             if count_in_cart <= 0:
-                # todo: Проверить, нужно ли обнуление count_in_cart
-                count_in_cart = 0
                 database.query('''DELETE FROM cart
                     WHERE cid = ? AND idx = ?''', (callback.message.chat.id, idx))
 
@@ -214,7 +209,6 @@ async def process_confirm(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
 
-# todo: объединить дублирующиеся сообщения админу и пользователю
 @cart_router.callback_query(F.data == 'confirm', StateFilter(CheckoutState.confirm))
 async def process_confirm(callback: CallbackQuery, state: FSMContext, admins: list, threshold: int,
                           database: DatabaseManager, bot: Bot):
@@ -235,14 +229,14 @@ async def process_confirm(callback: CallbackQuery, state: FSMContext, admins: li
 
         database.query('DELETE FROM cart WHERE cid=?', (cid,))
         markup = create_inline_kb('menu')
-        await message.answer(LEXICON['done_to_user'].format(data['name'], data['address'], data['phone']),
+        await message.answer(LEXICON['done_to_user'] + LEXICON['user_info'].format(data['name'],
+                                                                                            data['address'],
+                                                                                            data['phone']),
                              reply_markup=markup)
         for admin_id in admins:
             await bot.send_message(admin_id, LEXICON['done_to_admin'].format(message.from_user.username,
-                                                                                message.from_user.id,
-                                                                                data['name'],
-                                                                                data['address'],
-                                                                                data['phone']))
+                                                                             message.from_user.id) +
+                                   LEXICON['user_info'].format(data['name'], data['address'], data['phone']))
         await checkout(state=state, info_to_admin=True, admins=admins, threshold=threshold, bot=bot)
     else:
 

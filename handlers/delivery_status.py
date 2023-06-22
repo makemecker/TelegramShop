@@ -3,6 +3,7 @@ from aiogram.types import CallbackQuery
 from aiogram import Router
 from database.storage import DatabaseManager
 from lexicon import LEXICON
+from handlers.handler_functions import delivery_status_answer
 
 # Инициализируем роутер уровня модуля
 delivery_router: Router = Router()
@@ -18,22 +19,3 @@ async def process_delivery_status(callback: CallbackQuery, database: DatabaseMan
     else:
         await delivery_status_answer(message, orders)
     await callback.answer()
-
-
-async def delivery_status_answer(message, orders):
-
-    res = ''
-
-    for order in orders:
-
-        res += f'Заказ <b>№{order[3]}</b>'
-        answer = [
-            LEXICON['status_warehouse'],
-            LEXICON['status_on_way'],
-            LEXICON['status_delivered']
-        ]
-
-        res += answer[0]
-        res += '\n\n'
-
-    await message.answer(res)
