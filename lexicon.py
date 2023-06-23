@@ -2,7 +2,7 @@ from config import load_config
 
 PICKUP_ADDRESS: str = load_config().pickup_address
 
-LEXICON = {
+LEXICON: dict[str, str] = {
     'empty_cart': 'Ваша корзина пуста.',
     'to_registration': 'Перейти к оформлению?',
     'count': 'Количество - {}',
@@ -40,4 +40,9 @@ LEXICON = {
     '/menu': 'Меню',
     '/help': 'По всем вопросам можно обратиться к нашему менеджеру:\n @helpyoumanager',
     'other': 'Для продолжения наберите команду /menu'
+}
+
+LEXICON_COMMANDS: dict[str, str] = {
+    '/menu': 'Показать меню магазина',
+    '/help': 'Обратиться к менеджеру'
 }

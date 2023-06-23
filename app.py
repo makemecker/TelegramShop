@@ -4,18 +4,31 @@ from config import Config, load_config
 from aiogram import Bot, Dispatcher
 from handlers import router
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.enums.parse_mode import ParseMode
+from keyboards.main_menu import set_main_menu
+
+# Инициализируем логгер
+logger = logging.getLogger(__name__)
 
 
 async def main() -> None:
+    logging.basicConfig(
+        level=logging.INFO,  # Уровень логирования
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',  # Формат записи логов
+        filename='bot.log',  # Имя файла логов
+    )
+    # Выводим в консоль информацию о начале запуска бота
+    logger.info('Starting bot')
     # Загружаем конфиг в переменную config
     config: Config = load_config()
 
     # Инициализируем бот и диспетчер
-    bot: Bot = Bot(token=config.tg_bot.token, parse_mode=ParseMode.HTML)
+    bot: Bot = Bot(token=config.tg_bot.token, parse_mode='HTML')
     storage = MemoryStorage()
     dp: Dispatcher = Dispatcher(admins=config.tg_bot.admins, storage=storage, threshold=config.delivery_threshold,
                                 database=config.database)
+
+    # Настраиваем главное меню бота
+    await set_main_menu(bot)
 
     # Регистрируем роутеры в диспетчере
     dp.include_router(router)
@@ -25,10 +38,5 @@ async def main() -> None:
     await dp.start_polling(bot)
 
 if __name__ == '__main__':
-    logging.basicConfig(
-        level=logging.ERROR,  # Уровень логирования (в данном случае, только ошибки)
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',  # Формат записи логов
-        filename='bot.log',  # Имя файла логов
-    )
     # Запуск бота
     asyncio.run(main())

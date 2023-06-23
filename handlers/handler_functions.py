@@ -11,8 +11,7 @@ async def checkout(state: FSMContext, threshold: int, admins: list, bot: Bot, me
     answer = ''
     total_price = 0
 
-    data = await state.get_data()
-    for title, price, count_in_cart in data['products'].values():
+    for title, price, count_in_cart in (await state.get_data())['products'].values():
         if count_in_cart > 0:
             tp = count_in_cart * price
             answer += f'<b>{title}</b> * {count_in_cart}шт. = {tp}₽\n'
