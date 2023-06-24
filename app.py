@@ -15,6 +15,7 @@ async def main() -> None:
         level=logging.INFO,  # Уровень логирования
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',  # Формат записи логов
         filename='bot.log',  # Имя файла логов
+        filemode='w'  # Затирание файла с новым запуском
     )
     # Выводим в консоль информацию о начале запуска бота
     logger.info('Starting bot')

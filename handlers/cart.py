@@ -144,10 +144,8 @@ async def process_name_back(callback: CallbackQuery, state: FSMContext, threshol
 
 @cart_router.message(StateFilter(CheckoutState.name))
 async def process_name(message: Message, state: FSMContext):
-    data = await state.get_data()
-    data['name'] = message.text
-    await state.set_data(data)
-    if 'address' in data.keys():
+    await state.update_data(name=message.text)
+    if 'address' in (await state.get_data()).keys():
         await confirm(message)
         await state.set_state(CheckoutState.confirm)
     else:
@@ -169,14 +167,12 @@ async def process_address_back(callback: CallbackQuery, state: FSMContext):
 @cart_router.callback_query(F.data == 'pickup', StateFilter(CheckoutState.address))
 @cart_router.message(StateFilter(CheckoutState.address))
 async def process_address(update: Message | CallbackQuery, state: FSMContext):
-    data = await state.get_data()
     if isinstance(update, CallbackQuery):
-        data['address'] = LEXICON['address_if_pickup']
+        await state.update_data(address=LEXICON['address_if_pickup'])
         await update.answer()
         update = update.message
     else:
-        data['address'] = update.text
-    await state.set_data(data)
+        await state.update_data(address=update.text)
     await state.set_state(CheckoutState.phone)
     markup = create_inline_kb('back')
     await update.answer(LEXICON['set_phone'],
@@ -194,9 +190,7 @@ async def process_address_back(callback: CallbackQuery, state: FSMContext):
 
 @cart_router.message(StateFilter(CheckoutState.phone))
 async def process_address(message: Message, state: FSMContext):
-    data = await state.get_data()
-    data['phone'] = message.text
-    await state.set_data(data)
+    await state.update_data(phone=message.text)
 
     await confirm(message)
     await state.set_state(CheckoutState.confirm)
