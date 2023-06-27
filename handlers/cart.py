@@ -230,8 +230,8 @@ async def process_confirm(callback: CallbackQuery, state: FSMContext, admins: li
                                                                                    data['phone']),
                              reply_markup=markup)
         for admin_id in admins:
-            await bot.send_message(admin_id, LEXICON['done_to_admin'].format(message.from_user.username,
-                                                                             message.from_user.id) +
+            await bot.send_message(admin_id, LEXICON['done_to_admin'].format(callback.from_user.username,
+                                                                             callback.from_user.id) +
                                    LEXICON['user_info'].format(data['name'], data['address'], data['phone']))
         await checkout(state=state, info_to_admin=True, admins=admins, threshold=threshold, bot=bot)
     else:
