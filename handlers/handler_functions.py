@@ -36,7 +36,7 @@ async def confirm(message: Message):
                          reply_markup=markup)
 
 
-async def show_products(message: Message, products: list, bot: Bot):
+async def show_products(message: Message, products: list, bot: Bot, state: FSMContext):
     if len(products) == 0:
 
         await message.answer(LEXICON['nothing'])
@@ -45,7 +45,15 @@ async def show_products(message: Message, products: list, bot: Bot):
 
         await bot.send_chat_action(message.chat.id, ChatAction.TYPING)
 
-        for idx, title, body, image, price, _ in products:
+        len_products = len(products)
+        show_len = 10
+
+        data = await state.get_data()
+
+        start_index = 0 if "start_index" not in data.keys() else data["start_index"]
+        end_index = start_index + show_len if start_index + show_len <= len_products else len_products
+
+        for idx, title, body, image, price, _ in products[start_index:end_index]:
             markup = product_markup(idx, price)
             text = f'<b>{title}</b>\n\n{body}'
             if image is not None:
@@ -54,9 +62,32 @@ async def show_products(message: Message, products: list, bot: Bot):
                                            reply_markup=markup)
             else:
                 await message.answer(text=title, reply_markup=markup)
-        transition_markup = create_inline_kb('catalog', 'cart')
-        await message.answer(text=LEXICON['submenu'],
-                             reply_markup=transition_markup)
+
+        if start_index == 0:
+            if end_index != len_products:
+                await state.update_data(start_index=end_index)
+                # await message c кнопкой только вперед
+                transition_markup = create_inline_kb('pagination_forward', 'catalog', 'cart')
+                await message.answer(text=LEXICON['submenu'],
+                                     reply_markup=transition_markup)
+            else:
+                transition_markup = create_inline_kb('catalog', 'cart')
+                await message.answer(text=LEXICON['submenu'],
+                                     reply_markup=transition_markup)
+                # await message без пагинаций
+        else:
+            if end_index != len_products:
+                transition_markup = create_inline_kb('pagination_forward', 'pagination_back', 'catalog', 'cart')
+                await state.update_data(start_index=end_index)
+                await message.answer(text=LEXICON['submenu'],
+                                     reply_markup=transition_markup)
+                # await message c кнопкой вперед и назад
+            else:
+                transition_markup = create_inline_kb('pagination_back', 'catalog', 'cart')
+                await state.update_data(start_index=end_index)
+                await message.answer(text=LEXICON['submenu'],
+                                     reply_markup=transition_markup)
+                # await message c кнопкой назад
 
 
 async def delivery_status_answer(message: Message, orders: list):
