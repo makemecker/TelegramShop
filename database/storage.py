@@ -1,6 +1,10 @@
 import sqlite3 as lite
 
 
+def lower_string(_str):
+    return _str.lower()
+
+
 class DatabaseManager(object):
 
     def __init__(self, path):
@@ -8,6 +12,7 @@ class DatabaseManager(object):
         self.conn.execute('pragma foreign_keys = on')
         self.conn.commit()
         self.cur = self.conn.cursor()
+        self.conn.create_function("mylower", 1, lower_string)
 
     def create_tables(self):
         self.query('CREATE TABLE IF NOT EXISTS products (idx text, title text, body text, photo blob, price int, '

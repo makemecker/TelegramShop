@@ -67,23 +67,24 @@ async def show_products(message: Message, products: list, bot: Bot, state: FSMCo
             if end_index != len_products:
                 await state.update_data(start_index=end_index)
                 # await message c кнопкой только вперед
-                transition_markup = create_inline_kb('pagination_forward', 'catalog', 'cart')
+                transition_markup = create_inline_kb('pagination_forward', 'catalog', 'cart', 'search_form')
                 await message.answer(text=LEXICON['submenu'],
                                      reply_markup=transition_markup)
             else:
-                transition_markup = create_inline_kb('catalog', 'cart')
+                transition_markup = create_inline_kb('catalog', 'cart', 'search_form')
                 await message.answer(text=LEXICON['submenu'],
                                      reply_markup=transition_markup)
                 # await message без пагинаций
         else:
             if end_index != len_products:
-                transition_markup = create_inline_kb('pagination_forward', 'pagination_back', 'catalog', 'cart')
+                transition_markup = create_inline_kb('pagination_forward', 'pagination_back', 'catalog', 'cart',
+                                                     'search_form')
                 await state.update_data(start_index=end_index)
                 await message.answer(text=LEXICON['submenu'],
                                      reply_markup=transition_markup)
                 # await message c кнопкой вперед и назад
             else:
-                transition_markup = create_inline_kb('pagination_back', 'catalog', 'cart')
+                transition_markup = create_inline_kb('pagination_back', 'catalog', 'cart', 'search_form')
                 await state.update_data(start_index=end_index)
                 await message.answer(text=LEXICON['submenu'],
                                      reply_markup=transition_markup)

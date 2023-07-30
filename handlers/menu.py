@@ -17,5 +17,5 @@ async def user_menu(update: Message | CallbackQuery, state: FSMContext):
     if isinstance(update, CallbackQuery):
         await update.answer()
         update = update.message
-    markup = create_inline_kb('catalog', 'cart')
+    markup = create_inline_kb('catalog', 'cart', 'search_form')
     await update.answer(LEXICON['/menu'], reply_markup=markup)
